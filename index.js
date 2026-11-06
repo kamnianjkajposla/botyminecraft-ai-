@@ -1,21 +1,21 @@
 const mineflayer = require('mineflayer');
 const http = require('http');
 
-// --- 1. PROSTY SERWER HTTP DLA RENDERA (Żeby się nie wyłączał) ---
+// --- 1. SERWER HTTP DLA RENDERA (Żeby się nie wyłączał) ---
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Boty cywilizacji Minecraft działają w tle!\n');
+    res.end('Boty cywilizacji Minecraft działają w tle i rozmawiają na czacie!\n');
 });
 
 server.listen(PORT, () => {
-    console.log(`[HTTP] Serwer webowy działa na porcie ${PORT} i trzyma Render przy życiu.`);
+    console.log(`[HTTP] Serwer webowy działa na porcie ${PORT}.`);
 });
 
 // --- 2. KONFIGURACJA 20 AGENTÓW MINECRAFT ---
 const SERVER_HOST = 'sigammaikrft13.aternos.me';
-const SERVER_PORT = 25565; // Zmień, jeśli Aternos podał inny port
-const TOTAL_BOTS = 20;     // 20 agentów
+const SERVER_PORT = 25565; // Zmień, jeśli Aternos ma inny port
+const TOTAL_BOTS = 20;
 
 const StanOsady = {
     drewno: 0,
@@ -39,11 +39,24 @@ function uruchomBota(id) {
     });
 
     bot.on('spawn', () => {
-        console.log(`[+] ${nazwaBota} (${rola}) dołączył do świata na Renderze!`);
+        console.log(`[+] ${nazwaBota} (${rola}) dołączył do świata!`);
 
+        // Każdy bot co 25-45 sekund wykonuje akcję i pisze na czacie gry
         setInterval(() => {
-            podejmijDecyzjęAgenta(bot, rola, nazwaBota);
-        }, 30000 + Math.random() * 15000);
+            podejmijDecyzjęIRozmawiaj(bot, rola, nazwaBota);
+        }, 25000 + Math.random() * 20000);
+    });
+
+    // Nasłuchiwanie wiadomości czatu od innych graczy/botów
+    bot.on('chat', (username, message) => {
+        if (username === nazwaBota) return; // Ignoruj własne wiadomości
+        
+        // Reakcja na czat (np. bot odpowiada na komunikaty o drewnie)
+        if (message.includes("drewno") && rola === "budowniczy" && Math.random() < 0.4) {
+            setTimeout(() => {
+                bot.chat(`Widzę surowce! Przygotowuję plan budowy, ${username}.`);
+            }, 3000);
+        }
     });
 
     bot.on('error', (err) => {});
@@ -51,37 +64,42 @@ function uruchomBota(id) {
     bot.on('kicked', (reason) => {
         setTimeout(() => {
             uruchomBota(id);
-        }, 40000);
+        }, 45000); // Ponowne wejście po wyrzuceniu
     });
 }
 
-function podejmijDecyzjęAgenta(bot, rola, nazwa) {
+function podejmijDecyzjęIRozmawiaj(bot, rola, nazwa) {
     if (StanOsady.drewno >= 25 && StanOsady.poziomRozwoju === 1) {
         StanOsady.poziomRozwoju = 2;
-        bot.chat("Awansowaliśmy cywilizację na 2 poziom technologii!");
+        bot.chat("Osiągnęliśmy 2 poziom technologii cywilizacji!");
+        return;
     }
 
     if (rola === "drwal") {
         StanOsady.drewno += 2;
-        if (Math.random() < 0.3) {
-            bot.chat(`${nazwa}: Dostarczyłem drewno. (Magazyn: ${StanOsady.drewno} szt.)`);
+        if (Math.random() < 0.35) {
+            bot.chat(`${nazwa}: Ściąłem drzewa. Stan drewna w osadzie: ${StanOsady.drewno}`);
         }
     } else if (rola === "gornik" && StanOsady.poziomRozwoju >= 2) {
         StanOsady.kamien += 1;
-        if (Math.random() < 0.3) {
-            bot.chat(`${nazwa}: Wydobyłem surowiec skalny.`);
+        if (Math.random() < 0.35) {
+            bot.chat(`${nazwa}: Wydobywam kamień na mury obronne.`);
+        }
+    } else if (rola === "rolnik") {
+        if (Math.random() < 0.25) {
+            bot.chat(`${nazwa}: Uprawiam pole, żeby wyżywić całą osadę!`);
         }
     } else if (rola === "budowniczy" && StanOsady.drewno >= 4) {
         StanOsady.drewno -= 4;
-        bot.chat(`${nazwa}: 🏗️ Wznoszę nową strukturę osady!`);
+        bot.chat(`${nazwa}: 🏗️ Wznoszę nowy budynek mieszkalny z zebranego drewna!`);
     }
 }
 
-console.log(`=== URUCHAMIANIE 20 AGENTÓW DLA ${SERVER_HOST} ===`);
+console.log(`=== URUCHAMIANIE 20 AGENTÓW (wejście co 15 sekund) ===`);
 
-// Wchodzenie botów pojedynczo co 10 sekund (ochrona przed banem/DDoS na Aternosie)
+// Wchodzenie botów pojedynczo dokładnie co 15 sekund
 for (let i = 1; i <= TOTAL_BOTS; i++) {
     setTimeout(() => {
         uruchomBota(i);
-    }, i * 10000);
+    }, i * 15000); 
 }
