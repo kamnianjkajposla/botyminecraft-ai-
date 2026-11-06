@@ -1,0 +1,15 @@
+{
+  "name": "minecraft-agents-civilization",
+  "version": "1.0.0",
+  "description": "20 AI agents on Render connecting to Aternos",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "mineflayer": "^4.20.0"
+  },
+  "engines": {
+    "node": ">=20.x"
+  }
+}
